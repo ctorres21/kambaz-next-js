@@ -1,26 +1,26 @@
+"use client";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import * as db from "../../../../database";
 import { Button, Col, Form, Row } from "react-bootstrap";
 
 export default function AssignmentEditor() {
+  const { cid, aid } = useParams();
+  const assignment = db.assignments.find((a: any) => a._id === aid);
+
   return (
     <div id="wd-assignments-editor" className="p-3">
       <Form>
         <Form.Group className="mb-3" controlId="wd-name">
           <Form.Label>Assignment Name</Form.Label>
-          <Form.Control defaultValue="A1 - ENV + HTML" />
+          <Form.Control defaultValue={assignment?.title || ""} />
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="wd-description">
           <Form.Control
             as="textarea"
             rows={10}
-            defaultValue={`The assignment is available online.
-Submit a link to the landing page of your Web application running on Netlify.
-The landing page should include the following:
-- Your full name and section
-- Links to each of the lab assignments
-- Link to the Kanbas application
-- Links to all relevant source code repositories`}
+            defaultValue={assignment?.description || ""}
           />
         </Form.Group>
 
@@ -28,7 +28,7 @@ The landing page should include the following:
           <Col md={6}>
             <Form.Group className="mb-3" controlId="wd-points">
               <Form.Label>Points</Form.Label>
-              <Form.Control type="number" defaultValue={100} />
+              <Form.Control type="number" defaultValue={assignment?.points || 100} />
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="wd-assignment-group">
@@ -59,34 +59,11 @@ The landing page should include the following:
 
             <div className="border rounded p-3">
               <div className="fw-bold mb-2">Online Entry Options</div>
-
-              <Form.Check
-                type="checkbox"
-                id="wd-text-entry"
-                label="Text Entry"
-                defaultChecked
-              />
-              <Form.Check
-                type="checkbox"
-                id="wd-website-url"
-                label="Website URL"
-                defaultChecked
-              />
-              <Form.Check
-                type="checkbox"
-                id="wd-media-recordings"
-                label="Media Recordings"
-              />
-              <Form.Check
-                type="checkbox"
-                id="wd-student-annotation"
-                label="Student Annotation"
-              />
-              <Form.Check
-                type="checkbox"
-                id="wd-file-uploads"
-                label="File Uploads"
-              />
+              <Form.Check type="checkbox" id="wd-text-entry" label="Text Entry" defaultChecked />
+              <Form.Check type="checkbox" id="wd-website-url" label="Website URL" defaultChecked />
+              <Form.Check type="checkbox" id="wd-media-recordings" label="Media Recordings" />
+              <Form.Check type="checkbox" id="wd-student-annotation" label="Student Annotation" />
+              <Form.Check type="checkbox" id="wd-file-uploads" label="File Uploads" />
             </div>
           </Col>
 
@@ -103,19 +80,19 @@ The landing page should include the following:
                 <Col md={12}>
                   <Form.Group className="mb-3" controlId="wd-due-date">
                     <Form.Label>Due</Form.Label>
-                    <Form.Control type="date" defaultValue="2026-05-13" />
+                    <Form.Control type="date" defaultValue={assignment?.dueDate || ""} />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group className="mb-3" controlId="wd-available-from">
                     <Form.Label>Available from</Form.Label>
-                    <Form.Control type="date" defaultValue="2026-05-06" />
+                    <Form.Control type="date" defaultValue={assignment?.availableFrom || ""} />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group className="mb-3" controlId="wd-available-until">
                     <Form.Label>Until</Form.Label>
-                    <Form.Control type="date" defaultValue="2026-05-20" />
+                    <Form.Control type="date" defaultValue={assignment?.availableUntil || ""} />
                   </Form.Group>
                 </Col>
               </Row>
@@ -124,12 +101,12 @@ The landing page should include the following:
         </Row>
 
         <div className="d-flex justify-content-end gap-2">
-          <Link href="../" className="btn btn-secondary">
+          <Link href={`/courses/${cid}/assignments`} className="btn btn-secondary">
             Cancel
           </Link>
-          <Button variant="danger" type="button">
+          <Link href={`/courses/${cid}/assignments`} className="btn btn-danger">
             Save
-          </Button>
+          </Link>
         </div>
       </Form>
     </div>
