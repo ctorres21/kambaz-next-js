@@ -1,4 +1,4 @@
-"mport { FaTrash } from "react-icons/fa";
+import { FaTrash } from "react-icons/fa";
 import { FaPencil, FaCheckCircle } from "react-icons/fa6";
 import { BsPlus } from "react-icons/bs";
 import { IoEllipsisVertical } from "react-icons/io5";
