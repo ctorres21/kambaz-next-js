@@ -34,3 +34,8 @@ body * {
 .wd-lesson {
   border-left: 3px solid green !important;
 }
+
+wd-main-content-offset {
+  margin-left: 120px;
+}
+

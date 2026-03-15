@@ -1,15 +1,12 @@
 import { ReactNode } from "react";
 import AccountNavigation from "./Navigation";
-export default function AccountLayout({
-  children,
-}: Readonly<{ children: ReactNode }>) {
+export default function AccountLayout({ children }: { children: ReactNode }) {
   return (
-    <div id="wd-kambaz" className="container-fluid">
-      <div className="row">
-        <div className="col-3 col-md-2 col-lg-2 p-0">
-          <AccountNavigation />
-        </div>
-        <div className="col p-0">{children}</div>
+    <div id="wd-account-screen">
+      <h2>Account</h2>
+      <div className="d-flex">
+        <div className="me-3"><AccountNavigation /></div>
+        <div className="flex-fill">{children}</div>
       </div>
     </div>
   );

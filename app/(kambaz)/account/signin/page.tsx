@@ -1,31 +1,34 @@
+"use client";
 import Link from "next/link";
-import { FormControl } from "react-bootstrap";
-
+import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { setCurrentUser } from "../reducer";
+import * as db from "../../database";
+import { FormControl, Button } from "react-bootstrap";
+import { useRouter } from "next/navigation";
 export default function Signin() {
+  const [credentials, setCredentials] = useState<any>({});
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const signin = () => {
+    const user = db.users.find(
+      (u: any) => u.username === credentials.username && u.password === credentials.password
+    );
+    if (!user) return;
+    dispatch(setCurrentUser(user));
+    router.push("/dashboard");
+  };
   return (
-    <div id="wd-signin-screen" className="p-3">
-      <h1>Sign in</h1>
-      <FormControl
-        id="wd-username"
-        placeholder="username"
-        className="mb-2"
-      />
-      <FormControl
-        id="wd-password"
-        placeholder="password"
-        type="password"
-        className="mb-2"
-      />
-      <Link
-        id="wd-signin-btn"
-        href="/account/profile"
-        className="btn btn-primary w-100 mb-2"
-      >
-        Sign in
-      </Link>
-      <Link id="wd-signup-link" href="/account/signup">
-        Sign up
-      </Link>
+    <div id="wd-signin-screen">
+      <h3>Sign in</h3>
+      <FormControl defaultValue={credentials.username}
+        onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+        className="mb-2" placeholder="username" id="wd-username" />
+      <FormControl defaultValue={credentials.password}
+        onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+        className="mb-2" placeholder="password" type="password" id="wd-password" />
+      <Button onClick={signin} id="wd-signin-btn" className="w-100 mb-2">Sign in</Button>
+      <Link id="wd-signup-link" href="/account/signup">Sign up</Link>
     </div>
   );
 }

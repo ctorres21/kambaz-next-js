@@ -1,13 +1,16 @@
 "use client";
 import React from "react";
-import * as db from "../../../../database";
 import { useParams } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "../../../../store";
+import * as db from "../../../../database";
 import { Table } from "react-bootstrap";
 import { FaUserCircle } from "react-icons/fa";
 
 export default function PeopleTable() {
   const { cid } = useParams();
-  const { users, enrollments } = db;
+  const { enrollments } = useSelector((state: RootState) => state.enrollmentsReducer);
+  const { users } = db;
 
   return (
     <div id="wd-people-table">
@@ -24,9 +27,9 @@ export default function PeopleTable() {
         </thead>
         <tbody>
           {users
-            .filter((usr) =>
+            .filter((usr: any) =>
               enrollments.some(
-                (enrollment) =>
+                (enrollment: any) =>
                   enrollment.user === usr._id && enrollment.course === cid
               )
             )
