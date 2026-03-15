@@ -1,5 +1,5 @@
-import { FaTrash } from "react-icons/fa";
-import { FaPencil, FaCheckCircle } from "react-icons/fa6";
+import { FaTrash, FaCheckCircle } from "react-icons/fa";
+import { FaPencil } from "react-icons/fa6";
 import { BsPlus } from "react-icons/bs";
 import { IoEllipsisVertical } from "react-icons/io5";
 export default function ModuleControlButtons({ moduleId, deleteModule, editModule }: {
