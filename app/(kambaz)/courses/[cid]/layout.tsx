@@ -13,23 +13,15 @@ export default function CoursesLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { courses } = useSelector((state: RootState) => state.coursesReducer);
   const { currentUser } = useSelector((state: RootState) => state.accountReducer);
-  const { enrollments } = useSelector((state: RootState) => state.enrollmentsReducer);
   const course = courses.find((c: any) => c._id === cid);
   const [showNav, setShowNav] = useState(true);
 
-  // Route protection: redirect to dashboard if not enrolled
   useEffect(() => {
     if (!currentUser) {
       router.push("/account/signin");
       return;
     }
-    const isEnrolled = enrollments.some(
-      (e: any) => e.user === currentUser._id && e.course === cid
-    );
-    if (!isEnrolled) {
-      router.push("/dashboard");
-    }
-  }, [currentUser, enrollments, cid, router]);
+  }, [currentUser, cid, router]);
 
   return (
     <div id="wd-courses">
