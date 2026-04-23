@@ -1,13 +1,46 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { setCurrentUser } from "../reducer";
+import { FormControl, Button, Form } from "react-bootstrap";
 import Link from "next/link";
+import * as client from "../client";
+
 export default function Signup() {
+  const [user, setUser] = useState<any>({ username: "", password: "", role: "STUDENT" });
+  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const router = useRouter();
+
+  const signup = async () => {
+    try {
+      const currentUser = await client.signup(user);
+      dispatch(setCurrentUser(currentUser));
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Sign up failed");
+    }
+  };
+
   return (
-    <div id="wd-signup-screen">
-      <h3>Sign up</h3>
-      <input placeholder="username" className="wd-username" /><br/>
-      <input placeholder="password" type="password" className="wd-password" /><br/>
-      <input placeholder="verify password"
-             type="password" className="wd-password-verify" /><br/>
-      <Link  href="profile" > Sign up </Link><br />
-      <Link  href="signin" > Sign in </Link>
+    <div className="wd-signup-screen">
+      <h1>Sign up</h1>
+      {error && <div className="alert alert-danger">{error}</div>}
+      <FormControl value={user.username}
+        onChange={(e) => setUser({ ...user, username: e.target.value })}
+        className="wd-username mb-2" placeholder="username" />
+      <FormControl value={user.password}
+        onChange={(e) => setUser({ ...user, password: e.target.value })}
+        className="wd-password mb-2" placeholder="password" type="password" />
+      <Form.Select className="mb-2" value={user.role}
+        onChange={(e) => setUser({ ...user, role: e.target.value })}>
+        <option value="STUDENT">Student</option>
+        <option value="FACULTY">Faculty</option>
+      </Form.Select>
+      <Button onClick={signup} className="wd-signup-btn btn btn-primary mb-2 w-100">Sign up</Button>
+      <br />
+      <Link href="/account/signin" className="wd-signin-link">Sign in</Link>
     </div>
-);}
+  );
+}

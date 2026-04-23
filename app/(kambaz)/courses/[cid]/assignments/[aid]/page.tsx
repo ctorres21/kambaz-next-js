@@ -1,129 +1,108 @@
+"use client";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../../../../store";
+import { setAssignments } from "../reducer";
+import * as coursesClient from "../../../client";
+import { FormControl, Button, Row, Col } from "react-bootstrap";
+
 export default function AssignmentEditor() {
+  const { cid, aid } = useParams();
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const { assignments } = useSelector((state: RootState) => state.assignmentsReducer);
+
+  const isNew = aid === "new";
+  const existingAssignment = assignments.find((a: any) => a._id === aid);
+
+  const [assignment, setAssignment] = useState<any>({
+    title: "New Assignment",
+    description: "New Assignment Description",
+    points: 100,
+    dueDate: "",
+    availableFrom: "",
+    availableUntil: "",
+    course: cid,
+  });
+
+  useEffect(() => {
+    if (!isNew && existingAssignment) {
+      setAssignment(existingAssignment);
+    }
+  }, [isNew, existingAssignment]);
+
+  const handleSave = async () => {
+    if (isNew) {
+      const created = await coursesClient.createAssignment(cid as string, { ...assignment, course: cid });
+      dispatch(setAssignments([...assignments, created]));
+    } else {
+      const updated = await coursesClient.updateAssignment(assignment);
+      dispatch(setAssignments(assignments.map((a: any) => (a._id === updated._id ? updated : a))));
+    }
+    router.push(`/courses/${cid}/assignments`);
+  };
+
+  const handleCancel = () => {
+    router.push(`/courses/${cid}/assignments`);
+  };
+
   return (
-    <div id="wd-assignments-editor">
-      <label htmlFor="wd-name">Assignment Name</label>
-      <input id="wd-name" defaultValue="A1 - ENV + HTML" />
-      <br />
-      <br />
+    <div id="wd-assignment-editor" className="p-3">
+      <label htmlFor="wd-name" className="form-label fw-bold">Assignment Name</label>
+      <FormControl id="wd-name" className="mb-3"
+        value={assignment.title}
+        onChange={(e) => setAssignment({ ...assignment, title: e.target.value })} />
 
-      <textarea id="wd-description" defaultValue={
-`The assignment is available online.
-Submit a link to the landing page of your Web application running on Netlify.
-The landing page should include the following:
-- Your full name and section
-- Links to each of the lab assignments
-- Link to the Kanbas application
-- Links to all relevant source code repositories`
-      } />
-      <br />
-      <br />
+      <label htmlFor="wd-description" className="form-label fw-bold">Description</label>
+      <FormControl as="textarea" id="wd-description" className="mb-3" rows={4}
+        value={assignment.description}
+        onChange={(e) => setAssignment({ ...assignment, description: e.target.value })} />
 
-      <table>
-        <tbody>
-          <tr>
-            <td align="right" valign="top">
-              <label htmlFor="wd-points">Points</label>
-            </td>
-            <td>
-              <input id="wd-points" defaultValue={100} />
-            </td>
-          </tr>
+      <Row className="mb-3">
+        <Col xs={3} className="text-end pt-2">
+          <label htmlFor="wd-points" className="form-label">Points</label>
+        </Col>
+        <Col xs={9}>
+          <FormControl id="wd-points" type="number"
+            value={assignment.points}
+            onChange={(e) => setAssignment({ ...assignment, points: parseInt(e.target.value) || 0 })} />
+        </Col>
+      </Row>
 
-          <tr>
-            <td align="right" valign="top">
-              <label htmlFor="wd-assignment-group">Assignment Group</label>
-            </td>
-            <td>
-              <select id="wd-assignment-group" defaultValue="ASSIGNMENTS">
-                <option value="ASSIGNMENTS">ASSIGNMENTS</option>
-                <option value="QUIZZES">QUIZZES</option>
-                <option value="EXAMS">EXAMS</option>
-                <option value="PROJECT">PROJECT</option>
-              </select>
-            </td>
-          </tr>
+      <Row className="mb-3">
+        <Col xs={3} className="text-end pt-2">
+          <label className="form-label">Assign</label>
+        </Col>
+        <Col xs={9}>
+          <div className="border rounded p-3">
+            <label htmlFor="wd-due-date" className="form-label fw-bold">Due</label>
+            <FormControl id="wd-due-date" type="date" className="mb-3"
+              value={assignment.dueDate || ""}
+              onChange={(e) => setAssignment({ ...assignment, dueDate: e.target.value })} />
+            <Row>
+              <Col>
+                <label htmlFor="wd-available-from" className="form-label fw-bold">Available from</label>
+                <FormControl id="wd-available-from" type="date"
+                  value={assignment.availableFrom || ""}
+                  onChange={(e) => setAssignment({ ...assignment, availableFrom: e.target.value })} />
+              </Col>
+              <Col>
+                <label htmlFor="wd-available-until" className="form-label fw-bold">Until</label>
+                <FormControl id="wd-available-until" type="date"
+                  value={assignment.availableUntil || ""}
+                  onChange={(e) => setAssignment({ ...assignment, availableUntil: e.target.value })} />
+              </Col>
+            </Row>
+          </div>
+        </Col>
+      </Row>
 
-          <tr>
-            <td align="right" valign="top">
-              <label htmlFor="wd-display-grade-as">Display Grade as</label>
-            </td>
-            <td>
-              <select id="wd-display-grade-as" defaultValue="PERCENTAGE">
-                <option value="PERCENTAGE">Percentage</option>
-                <option value="POINTS">Points</option>
-              </select>
-            </td>
-          </tr>
-
-          <tr>
-            <td align="right" valign="top">
-              <label htmlFor="wd-submission-type">Submission Type</label>
-            </td>
-            <td>
-              <select id="wd-submission-type" defaultValue="ONLINE">
-                <option value="ONLINE">Online</option>
-                <option value="ON_PAPER">On Paper</option>
-              </select>
-
-              <br />
-              <br />
-
-              <label htmlFor="wd-online-entry-options">Online Entry Options</label>
-              <div id="wd-online-entry-options">
-                <div>
-                  <input type="checkbox" id="wd-text-entry" defaultChecked />
-                  <label htmlFor="wd-text-entry">Text Entry</label>
-                </div>
-                <div>
-                  <input type="checkbox" id="wd-website-url" defaultChecked />
-                  <label htmlFor="wd-website-url">Website URL</label>
-                </div>
-                <div>
-                  <input type="checkbox" id="wd-media-recordings" />
-                  <label htmlFor="wd-media-recordings">Media Recordings</label>
-                </div>
-                <div>
-                  <input type="checkbox" id="wd-student-annotation" />
-                  <label htmlFor="wd-student-annotation">Student Annotation</label>
-                </div>
-                <div>
-                  <input type="checkbox" id="wd-file-uploads" />
-                  <label htmlFor="wd-file-uploads">File Uploads</label>
-                </div>
-              </div>
-            </td>
-          </tr>
-
-          <tr>
-            <td align="right" valign="top">
-              <label htmlFor="wd-assign-to">Assign</label>
-            </td>
-            <td>
-              <label htmlFor="wd-assign-to">Assign to</label>
-              <input id="wd-assign-to" defaultValue="Everyone" />
-              <br />
-              <br />
-
-              <label htmlFor="wd-due-date">Due</label>
-              <input id="wd-due-date" type="date" defaultValue="2026-05-13" />
-              <br />
-              <br />
-
-              <label htmlFor="wd-available-from">Available from</label>
-              <input id="wd-available-from" type="date" defaultValue="2026-05-06" />
-              <br />
-              <br />
-
-              <label htmlFor="wd-available-until">Until</label>
-              <input id="wd-available-until" type="date" defaultValue="2026-05-20" />
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <br />
-      <button>Cancel</button>
-      <button>Save</button>
+      <hr />
+      <div className="d-flex justify-content-end">
+        <Button variant="secondary" className="me-2" onClick={handleCancel}>Cancel</Button>
+        <Button variant="danger" onClick={handleSave}>Save</Button>
+      </div>
     </div>
   );
 }
