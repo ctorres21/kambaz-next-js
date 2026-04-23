@@ -5,9 +5,32 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../../../../store";
 import { setQuizzes } from "../../reducer";
 import * as quizClient from "../../client";
+import { Quiz } from "../../client";
 import {
   Button, FormControl, Form, Row, Col, Nav,
 } from "react-bootstrap";
+
+const DEFAULT_QUIZ: Omit<Quiz, "_id" | "course"> = {
+  title: "Unnamed Quiz",
+  description: "",
+  quizType: "Graded Quiz",
+  assignmentGroup: "QUIZZES",
+  shuffleAnswers: true,
+  timeLimit: 20,
+  multipleAttempts: false,
+  howManyAttempts: 1,
+  showCorrectAnswers: "Immediately",
+  accessCode: "",
+  oneQuestionAtATime: true,
+  webcamRequired: false,
+  lockQuestionsAfterAnswering: false,
+  dueDate: "",
+  availableDate: "",
+  untilDate: "",
+  points: 0,
+  published: false,
+  numberOfQuestions: 0,
+};
 
 export default function QuizDetailsEditor() {
   const { cid, qid } = useParams();
@@ -15,42 +38,24 @@ export default function QuizDetailsEditor() {
   const dispatch = useDispatch();
   const { quizzes } = useSelector((state: RootState) => state.quizzesReducer);
 
-  const [quiz, setQuiz] = useState<any>({
-    title: "Unnamed Quiz",
-    description: "",
-    quizType: "Graded Quiz",
-    assignmentGroup: "QUIZZES",
-    shuffleAnswers: true,
-    timeLimit: 20,
-    multipleAttempts: false,
-    howManyAttempts: 1,
-    showCorrectAnswers: "Immediately",
-    accessCode: "",
-    oneQuestionAtATime: true,
-    webcamRequired: false,
-    lockQuestionsAfterAnswering: false,
-    dueDate: "",
-    availableDate: "",
-    untilDate: "",
-    points: 0,
-    published: false,
-    numberOfQuestions: 0,
-  });
+  const [quiz, setQuiz] = useState<Quiz>({ _id: "", course: "", ...DEFAULT_QUIZ });
 
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
         const q = await quizClient.findQuizById(qid as string);
         setQuiz(q);
-      } catch { /* new quiz */ }
+      } catch {
+        /* new quiz fallback */
+      }
     };
     fetchQuiz();
   }, [qid]);
 
   const handleSave = async (publish?: boolean) => {
-    const toSave = publish !== undefined ? { ...quiz, published: publish } : quiz;
+    const toSave: Quiz = publish !== undefined ? { ...quiz, published: publish } : quiz;
     const updated = await quizClient.updateQuiz(toSave);
-    dispatch(setQuizzes(quizzes.map((q: any) => q._id === updated._id ? updated : q)));
+    dispatch(setQuizzes(quizzes.map((q) => q._id === updated._id ? updated : q)));
     if (publish) {
       router.push(`/courses/${cid}/quizzes`);
     } else {
@@ -62,7 +67,7 @@ export default function QuizDetailsEditor() {
     router.push(`/courses/${cid}/quizzes`);
   };
 
-  const toDatetimeLocal = (val: string) => {
+  const toDatetimeLocal = (val: string): string => {
     if (!val) return "";
     try { return new Date(val).toISOString().slice(0, 16); }
     catch { return ""; }
@@ -85,16 +90,13 @@ export default function QuizDetailsEditor() {
         </Nav.Item>
       </Nav>
 
-      {/* Title */}
       <FormControl className="mb-3" value={quiz.title}
         onChange={(e) => setQuiz({ ...quiz, title: e.target.value })} />
 
-      {/* Description */}
       <label className="form-label fw-bold">Quiz Instructions</label>
       <FormControl as="textarea" rows={4} className="mb-3" value={quiz.description}
         onChange={(e) => setQuiz({ ...quiz, description: e.target.value })} />
 
-      {/* Quiz Type */}
       <Row className="mb-3">
         <Col xs={4} className="text-end pt-2"><label>Quiz Type</label></Col>
         <Col xs={8}>
@@ -108,7 +110,6 @@ export default function QuizDetailsEditor() {
         </Col>
       </Row>
 
-      {/* Assignment Group */}
       <Row className="mb-3">
         <Col xs={4} className="text-end pt-2"><label>Assignment Group</label></Col>
         <Col xs={8}>
@@ -122,7 +123,6 @@ export default function QuizDetailsEditor() {
         </Col>
       </Row>
 
-      {/* Options */}
       <Row className="mb-3">
         <Col xs={4} className="text-end pt-2"><label>Options</label></Col>
         <Col xs={8}>
@@ -168,7 +168,6 @@ export default function QuizDetailsEditor() {
         </Col>
       </Row>
 
-      {/* Show Correct Answers */}
       <Row className="mb-3">
         <Col xs={4} className="text-end pt-2"><label>Show Correct Answers</label></Col>
         <Col xs={8}>
@@ -181,7 +180,6 @@ export default function QuizDetailsEditor() {
         </Col>
       </Row>
 
-      {/* Access Code */}
       <Row className="mb-3">
         <Col xs={4} className="text-end pt-2"><label>Access Code</label></Col>
         <Col xs={8}>
@@ -191,7 +189,6 @@ export default function QuizDetailsEditor() {
         </Col>
       </Row>
 
-      {/* Dates */}
       <Row className="mb-3">
         <Col xs={4} className="text-end pt-2"><label>Assign</label></Col>
         <Col xs={8}>

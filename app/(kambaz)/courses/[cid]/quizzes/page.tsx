@@ -6,8 +6,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../../store";
 import { setQuizzes, updateQuiz as updateQuizInStore, deleteQuiz as deleteQuizFromStore } from "./reducer";
 import * as quizClient from "./client";
+import { Quiz } from "./client";
 import { BsGripVertical } from "react-icons/bs";
-import { FaSearch, FaPlus, FaCheckCircle, FaBan, FaTrash, FaEllipsisV, FaPencilAlt, FaCopy, FaSort } from "react-icons/fa";
+import { FaSearch, FaPlus, FaCheckCircle, FaBan, FaTrash, FaEllipsisV, FaPencilAlt } from "react-icons/fa";
 import { MdQuiz } from "react-icons/md";
 import {
   ListGroup, ListGroupItem, Button, FormControl, Modal, Dropdown,
@@ -21,9 +22,9 @@ export default function Quizzes() {
   const { currentUser } = useSelector((state: RootState) => state.accountReducer);
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [quizToDelete, setQuizToDelete] = useState<any>(null);
+  const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [latestScores, setLatestScores] = useState<any>({});
+  const [latestScores, setLatestScores] = useState<Record<string, number>>({});
 
   const isFaculty = currentUser?.role === "FACULTY";
 
@@ -32,28 +33,32 @@ export default function Quizzes() {
     dispatch(setQuizzes(data));
   };
 
-  const fetchLatestScores = async (quizList: any[]) => {
+  const fetchLatestScores = async (quizList: Quiz[]) => {
     if (isFaculty) return;
-    const scores: any = {};
+    const scores: Record<string, number> = {};
     for (const q of quizList) {
       try {
         const attempt = await quizClient.getLatestAttempt(q._id);
         if (attempt) {
           scores[q._id] = attempt.score;
         }
-      } catch { /* no attempt yet */ }
+      } catch {
+        /* no attempt yet */
+      }
     }
     setLatestScores(scores);
   };
 
   useEffect(() => {
     fetchQuizzes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cid]);
 
   useEffect(() => {
     if (quizzes.length > 0 && !isFaculty) {
       fetchLatestScores(quizzes);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizzes.length]);
 
   const handleAddQuiz = async () => {
@@ -91,13 +96,13 @@ export default function Quizzes() {
     setQuizToDelete(null);
   };
 
-  const togglePublish = async (quiz: any) => {
-    const updated = { ...quiz, published: !quiz.published };
+  const togglePublish = async (quiz: Quiz) => {
+    const updated: Quiz = { ...quiz, published: !quiz.published };
     await quizClient.updateQuiz(updated);
     dispatch(updateQuizInStore(updated));
   };
 
-  const getAvailability = (quiz: any) => {
+  const getAvailability = (quiz: Quiz): string => {
     const now = new Date();
     const available = quiz.availableDate ? new Date(quiz.availableDate) : null;
     const until = quiz.untilDate ? new Date(quiz.untilDate) : null;
@@ -110,7 +115,7 @@ export default function Quizzes() {
     return "Available";
   };
 
-  const filteredQuizzes = quizzes.filter((q: any) => {
+  const filteredQuizzes = quizzes.filter((q: Quiz) => {
     const matchesSearch = q.title.toLowerCase().includes(searchTerm.toLowerCase());
     if (isFaculty) return matchesSearch;
     return matchesSearch && q.published;
@@ -149,7 +154,7 @@ export default function Quizzes() {
           </ListGroupItem>
         )}
 
-        {filteredQuizzes.map((quiz: any) => (
+        {filteredQuizzes.map((quiz: Quiz) => (
           <ListGroupItem key={quiz._id} className="p-3 ps-1 d-flex align-items-center">
             <BsGripVertical className="me-2 fs-3" />
             <MdQuiz className="text-success me-3 fs-4" />

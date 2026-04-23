@@ -1,45 +1,53 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../../../store";
 import * as quizClient from "../../client";
+import { Quiz, Question } from "../../client";
 import {
   Button, Card, Form, FormControl, Alert,
 } from "react-bootstrap";
+
+interface ShuffledChoice {
+  c: string;
+  wasCorrect: boolean;
+}
 
 export default function QuizAttempt() {
   const { cid, qid } = useParams();
   const router = useRouter();
   const { currentUser } = useSelector((state: RootState) => state.accountReducer);
 
-  const [quiz, setQuiz] = useState<any>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [answers, setAnswers] = useState<any>({});
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<Record<string, number | boolean | string>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [accessCodeInput, setAccessCodeInput] = useState("");
   const [accessGranted, setAccessGranted] = useState(false);
+  const autoSubmittedRef = useRef(false);
 
   useEffect(() => {
     const fetch = async () => {
       const q = await quizClient.findQuizById(qid as string);
       setQuiz(q);
       const qs = await quizClient.findQuestionsForQuiz(qid as string);
-      // Shuffle if configured
       if (q.shuffleAnswers) {
         for (const question of qs) {
           if (question.type === "Multiple Choice" && question.choices) {
-            // Shuffle choices and adjust correctAnswer index
-            const indexed = question.choices.map((c: string, i: number) => ({ c, wasCorrect: i === question.correctAnswer }));
+            const indexed: ShuffledChoice[] = question.choices.map((c: string, i: number) => ({
+              c,
+              wasCorrect: i === question.correctAnswer,
+            }));
             for (let i = indexed.length - 1; i > 0; i--) {
               const j = Math.floor(Math.random() * (i + 1));
               [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
             }
-            question.choices = indexed.map((x: any) => x.c);
-            question.correctAnswer = indexed.findIndex((x: any) => x.wasCorrect);
+            question.choices = indexed.map((x) => x.c);
+            question.correctAnswer = indexed.findIndex((x) => x.wasCorrect);
           }
         }
       }
@@ -52,7 +60,6 @@ export default function QuizAttempt() {
     fetch();
   }, [qid]);
 
-  // Timer countdown
   useEffect(() => {
     if (timeLeft === null || timeLeft <= 0) return;
     const interval = setInterval(() => {
@@ -65,13 +72,14 @@ export default function QuizAttempt() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [timeLeft]);
+  }, [timeLeft !== null]);
 
-  // Auto-submit when time runs out
   useEffect(() => {
-    if (timeLeft === 0 && accessGranted) {
+    if (timeLeft === 0 && accessGranted && !autoSubmittedRef.current) {
+      autoSubmittedRef.current = true;
       handleSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
   const handleSubmit = async () => {
@@ -80,8 +88,9 @@ export default function QuizAttempt() {
     try {
       await quizClient.submitAttempt(qid as string, answers);
       router.push(`/courses/${cid}/quizzes/${qid}/preview`);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to submit quiz");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr.response?.data?.message || "Failed to submit quiz");
       setSubmitting(false);
     }
   };
@@ -109,7 +118,7 @@ export default function QuizAttempt() {
     );
   }
 
-  const formatTime = (s: number) => {
+  const formatTime = (s: number): string => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${m}:${sec.toString().padStart(2, "0")}`;
@@ -136,7 +145,7 @@ export default function QuizAttempt() {
       </p>
       {quiz.description && <p>{quiz.description}</p>}
 
-      {displayQuestions.filter(Boolean).map((q: any, idx: number) => {
+      {displayQuestions.filter(Boolean).map((q: Question, idx: number) => {
         const globalIdx = oneAtATime ? currentIndex : idx;
         return (
           <Card key={q._id} className="mb-3">
@@ -174,7 +183,7 @@ export default function QuizAttempt() {
 
               {q.type === "Fill in the Blank" && (
                 <FormControl
-                  value={answers[q._id] || ""}
+                  value={String(answers[q._id] || "")}
                   placeholder="Type your answer here"
                   onChange={(e) => setAnswers({ ...answers, [q._id]: e.target.value })}
                 />
@@ -184,7 +193,6 @@ export default function QuizAttempt() {
         );
       })}
 
-      {/* Navigation for one-at-a-time mode */}
       {oneAtATime && questions.length > 0 && (
         <div className="d-flex justify-content-between mb-3">
           <Button variant="outline-secondary" disabled={currentIndex === 0}
@@ -200,7 +208,7 @@ export default function QuizAttempt() {
               Next &rarr;
             </Button>
           ) : (
-            <span></span>
+            <span />
           )}
         </div>
       )}

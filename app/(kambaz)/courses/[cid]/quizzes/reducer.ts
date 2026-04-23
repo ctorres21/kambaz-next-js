@@ -1,40 +1,46 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { Quiz, Question } from "./client";
 
-const initialState = {
-  quizzes: [] as any[],
-  questions: [] as any[],
+interface QuizzesState {
+  quizzes: Quiz[];
+  questions: Question[];
+}
+
+const initialState: QuizzesState = {
+  quizzes: [],
+  questions: [],
 };
 
 const quizzesSlice = createSlice({
   name: "quizzes",
   initialState,
   reducers: {
-    setQuizzes: (state, action) => {
+    setQuizzes: (state, action: PayloadAction<Quiz[]>) => {
       state.quizzes = action.payload;
     },
-    addQuiz: (state, { payload: quiz }) => {
-      state.quizzes = [...state.quizzes, quiz];
+    addQuiz: (state, action: PayloadAction<Quiz>) => {
+      state.quizzes = [...state.quizzes, action.payload];
     },
-    deleteQuiz: (state, { payload: quizId }) => {
-      state.quizzes = state.quizzes.filter((q: any) => q._id !== quizId);
+    deleteQuiz: (state, action: PayloadAction<string>) => {
+      state.quizzes = state.quizzes.filter((q) => q._id !== action.payload);
     },
-    updateQuiz: (state, { payload: quiz }) => {
-      state.quizzes = state.quizzes.map((q: any) =>
-        q._id === quiz._id ? quiz : q
+    updateQuiz: (state, action: PayloadAction<Quiz>) => {
+      state.quizzes = state.quizzes.map((q) =>
+        q._id === action.payload._id ? action.payload : q
       );
     },
-    setQuestions: (state, action) => {
+    setQuestions: (state, action: PayloadAction<Question[]>) => {
       state.questions = action.payload;
     },
-    addQuestion: (state, { payload: question }) => {
-      state.questions = [...state.questions, question];
+    addQuestion: (state, action: PayloadAction<Question>) => {
+      state.questions = [...state.questions, action.payload];
     },
-    removeQuestion: (state, { payload: questionId }) => {
-      state.questions = state.questions.filter((q: any) => q._id !== questionId);
+    removeQuestion: (state, action: PayloadAction<string>) => {
+      state.questions = state.questions.filter((q) => q._id !== action.payload);
     },
-    updateQuestionInStore: (state, { payload: question }) => {
-      state.questions = state.questions.map((q: any) =>
-        q._id === question._id ? question : q
+    updateQuestionInStore: (state, action: PayloadAction<Question>) => {
+      state.questions = state.questions.map((q) =>
+        q._id === action.payload._id ? action.payload : q
       );
     },
   },

@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../../../store";
 import * as quizClient from "../../client";
+import { Quiz, Question, Attempt, AttemptResult } from "../../client";
 import {
   Button, Card, Form, FormControl, Alert,
 } from "react-bootstrap";
@@ -15,17 +16,15 @@ export default function QuizPreview() {
   const { currentUser } = useSelector((state: RootState) => state.accountReducer);
   const isFaculty = currentUser?.role === "FACULTY";
 
-  const [quiz, setQuiz] = useState<any>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [answers, setAnswers] = useState<any>({});
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<Record<string, number | boolean | string>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<Record<string, AttemptResult> | null>(null);
   const [score, setScore] = useState(0);
   const [totalPoints, setTotalPoints] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  // For students viewing last attempt
-  const [viewingAttempt, setViewingAttempt] = useState<any>(null);
+  const [viewingAttempt, setViewingAttempt] = useState<Attempt | null>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -34,7 +33,6 @@ export default function QuizPreview() {
       const qs = await quizClient.findQuestionsForQuiz(qid as string);
       setQuestions(qs);
 
-      // Students viewing their last attempt
       if (!isFaculty) {
         try {
           const attempt = await quizClient.getLatestAttempt(qid as string);
@@ -46,16 +44,19 @@ export default function QuizPreview() {
             setTotalPoints(attempt.totalPoints);
             setSubmitted(true);
           }
-        } catch { /* no attempt */ }
+        } catch {
+          /* no attempt */
+        }
       }
     };
     fetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qid]);
 
   const handleSubmit = () => {
-    // Grade locally for faculty preview (don't save to DB)
+    if (!quiz) return;
     let s = 0;
-    const r: any = {};
+    const r: Record<string, AttemptResult> = {};
     for (const q of questions) {
       const userAnswer = answers[q._id];
       let correct = false;
@@ -69,7 +70,7 @@ export default function QuizPreview() {
         );
       }
       if (correct) s += q.points;
-      r[q._id] = { correct, userAnswer, points: correct ? q.points : 0 };
+      r[q._id] = { correct, userAnswer: userAnswer ?? "", points: correct ? q.points : 0 };
     }
     setScore(s);
     setTotalPoints(quiz.points);
@@ -105,7 +106,7 @@ export default function QuizPreview() {
 
       {quiz.description && !submitted && <p className="text-muted mb-3">{quiz.description}</p>}
 
-      {displayQuestions.filter(Boolean).map((q: any, idx: number) => {
+      {displayQuestions.filter(Boolean).map((q: Question, idx: number) => {
         const qResult = results?.[q._id];
         const globalIdx = oneAtATime ? currentIndex : idx;
         return (
@@ -160,7 +161,7 @@ export default function QuizPreview() {
                 <div>
                   <FormControl
                     disabled={submitted}
-                    value={answers[q._id] || ""}
+                    value={String(answers[q._id] || "")}
                     placeholder="Type your answer here"
                     onChange={(e) => setAnswers({ ...answers, [q._id]: e.target.value })}
                   />
@@ -176,7 +177,6 @@ export default function QuizPreview() {
         );
       })}
 
-      {/* Navigation for one-at-a-time mode */}
       {oneAtATime && !submitted && questions.length > 0 && (
         <div className="d-flex justify-content-between mb-3">
           <Button variant="outline-secondary" disabled={currentIndex === 0}

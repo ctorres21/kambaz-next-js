@@ -5,18 +5,23 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../../../../store";
 import { setQuizzes } from "../../reducer";
 import * as quizClient from "../../client";
+import { Question } from "../../client";
 import {
   Button, FormControl, Form, Nav, Card, ListGroup, ListGroupItem, Row, Col,
 } from "react-bootstrap";
 import { FaTrash, FaPlus, FaPencilAlt } from "react-icons/fa";
 
-function MultipleChoiceEditor({ question, onChange }: { question: any; onChange: (q: any) => void }) {
+function MultipleChoiceEditor({ question, onChange }: { question: Question; onChange: (q: Question) => void }) {
   const choices = question.choices || [""];
   const addChoice = () => onChange({ ...question, choices: [...choices, ""] });
   const removeChoice = (i: number) => {
-    const updated = choices.filter((_: any, idx: number) => idx !== i);
-    const ca = question.correctAnswer >= updated.length ? 0 : question.correctAnswer;
-    onChange({ ...question, choices: updated, correctAnswer: i === question.correctAnswer ? 0 : (i < question.correctAnswer ? ca - 1 : ca) });
+    const updated = choices.filter((_, idx) => idx !== i);
+    const currentCorrect = typeof question.correctAnswer === "number" ? question.correctAnswer : 0;
+    let newCorrect = currentCorrect;
+    if (i === currentCorrect) newCorrect = 0;
+    else if (i < currentCorrect) newCorrect = currentCorrect - 1;
+    if (newCorrect >= updated.length) newCorrect = 0;
+    onChange({ ...question, choices: updated, correctAnswer: newCorrect });
   };
   const updateChoice = (i: number, val: string) => {
     const updated = [...choices]; updated[i] = val;
@@ -44,7 +49,7 @@ function MultipleChoiceEditor({ question, onChange }: { question: any; onChange:
   );
 }
 
-function TrueFalseEditor({ question, onChange }: { question: any; onChange: (q: any) => void }) {
+function TrueFalseEditor({ question, onChange }: { question: Question; onChange: (q: Question) => void }) {
   return (
     <div>
       <label className="form-label fw-bold">Answers:</label>
@@ -58,10 +63,10 @@ function TrueFalseEditor({ question, onChange }: { question: any; onChange: (q: 
   );
 }
 
-function FillInBlankEditor({ question, onChange }: { question: any; onChange: (q: any) => void }) {
+function FillInBlankEditor({ question, onChange }: { question: Question; onChange: (q: Question) => void }) {
   const answers = question.correctAnswers || [""];
   const addAnswer = () => onChange({ ...question, correctAnswers: [...answers, ""] });
-  const removeAnswer = (i: number) => onChange({ ...question, correctAnswers: answers.filter((_: any, idx: number) => idx !== i) });
+  const removeAnswer = (i: number) => onChange({ ...question, correctAnswers: answers.filter((_, idx) => idx !== i) });
   const updateAnswer = (i: number, val: string) => {
     const updated = [...answers]; updated[i] = val;
     onChange({ ...question, correctAnswers: updated });
@@ -90,9 +95,9 @@ export default function QuizQuestionsEditor() {
   const dispatch = useDispatch();
   const { quizzes } = useSelector((state: RootState) => state.quizzesReducer);
 
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingQuestion, setEditingQuestion] = useState<any>(null);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -102,13 +107,13 @@ export default function QuizQuestionsEditor() {
     fetch();
   }, [qid]);
 
-  const totalPoints = questions.reduce((sum: number, q: any) => sum + (q.points || 0), 0);
+  const totalPoints = questions.reduce((sum: number, q: Question) => sum + (q.points || 0), 0);
 
   const handleNewQuestion = () => {
     const tempId = `temp-${Date.now()}`;
-    const newQ: any = {
+    const newQ: Question = {
       _id: tempId,
-      quiz: qid,
+      quiz: qid as string,
       title: "New Question",
       type: "Multiple Choice",
       points: 1,
@@ -122,14 +127,14 @@ export default function QuizQuestionsEditor() {
     setEditingQuestion({ ...newQ });
   };
 
-  const startEdit = (q: any) => {
+  const startEdit = (q: Question) => {
     setEditingId(q._id);
     setEditingQuestion({ ...q });
   };
 
-  const cancelEdit = (q: any) => {
+  const cancelEdit = (q: Question) => {
     if (q._isNew) {
-      setQuestions(questions.filter((qq: any) => qq._id !== q._id));
+      setQuestions(questions.filter((qq) => qq._id !== q._id));
     }
     setEditingId(null);
     setEditingQuestion(null);
@@ -137,7 +142,7 @@ export default function QuizQuestionsEditor() {
 
   const handleTypeChange = (type: string) => {
     if (!editingQuestion) return;
-    const base = { ...editingQuestion, type };
+    const base: Question = { ...editingQuestion, type };
     if (type === "Multiple Choice") {
       base.choices = base.choices || ["", "", "", ""];
       base.correctAnswer = typeof base.correctAnswer === "number" ? base.correctAnswer : 0;
@@ -156,38 +161,37 @@ export default function QuizQuestionsEditor() {
 
   const saveQuestion = async () => {
     if (!editingQuestion) return;
+    const isNew = editingQuestion._isNew;
     const { _isNew, ...data } = editingQuestion;
-    let saved;
-    if (_isNew) {
+    let saved: Question;
+    if (isNew) {
       const { _id, ...rest } = data;
       saved = await quizClient.createQuestion(qid as string, rest);
-      setQuestions(questions.map((q: any) => q._id === editingQuestion._id ? saved : q));
     } else {
-      saved = await quizClient.updateQuestion(data);
-      setQuestions(questions.map((q: any) => q._id === saved._id ? saved : q));
+      saved = await quizClient.updateQuestion(data as Question & { _id: string });
     }
-    // Update quiz points and numberOfQuestions
-    const updatedQuestions = questions.map((q: any) => q._id === editingQuestion._id ? saved : q);
-    const pts = updatedQuestions.reduce((s: number, q: any) => s + (q.points || 0), 0);
-    await quizClient.updateQuiz({ _id: qid, points: pts, numberOfQuestions: updatedQuestions.length });
-    const updatedQuizzes = quizzes.map((q: any) =>
+    const updatedQuestions = questions.map((q) => q._id === editingQuestion._id ? saved : q);
+    setQuestions(updatedQuestions);
+
+    const pts = updatedQuestions.reduce((s: number, q: Question) => s + (q.points || 0), 0);
+    await quizClient.updateQuiz({ _id: qid as string, points: pts, numberOfQuestions: updatedQuestions.length });
+    dispatch(setQuizzes(quizzes.map((q) =>
       q._id === qid ? { ...q, points: pts, numberOfQuestions: updatedQuestions.length } : q
-    );
-    dispatch(setQuizzes(updatedQuizzes));
+    )));
 
     setEditingId(null);
     setEditingQuestion(null);
   };
 
-  const deleteQuestion = async (q: any) => {
+  const handleDeleteQuestion = async (q: Question) => {
     if (!q._isNew) {
       await quizClient.deleteQuestion(q._id);
     }
-    const updated = questions.filter((qq: any) => qq._id !== q._id);
+    const updated = questions.filter((qq) => qq._id !== q._id);
     setQuestions(updated);
-    const pts = updated.reduce((s: number, qq: any) => s + (qq.points || 0), 0);
-    await quizClient.updateQuiz({ _id: qid, points: pts, numberOfQuestions: updated.length });
-    dispatch(setQuizzes(quizzes.map((qq: any) =>
+    const pts = updated.reduce((s: number, qq: Question) => s + (qq.points || 0), 0);
+    await quizClient.updateQuiz({ _id: qid as string, points: pts, numberOfQuestions: updated.length });
+    dispatch(setQuizzes(quizzes.map((qq) =>
       qq._id === qid ? { ...qq, points: pts, numberOfQuestions: updated.length } : qq
     )));
     if (editingId === q._id) { setEditingId(null); setEditingQuestion(null); }
@@ -214,7 +218,7 @@ export default function QuizQuestionsEditor() {
       </Nav>
 
       <ListGroup className="mb-3">
-        {questions.map((q: any) => (
+        {questions.map((q: Question) => (
           <ListGroupItem key={q._id} className="p-3">
             {editingId === q._id && editingQuestion ? (
               <Card>
@@ -285,7 +289,7 @@ export default function QuizQuestionsEditor() {
                   <FaPencilAlt className="text-primary me-2" style={{ cursor: "pointer" }}
                     onClick={() => startEdit(q)} />
                   <FaTrash className="text-danger" style={{ cursor: "pointer" }}
-                    onClick={() => deleteQuestion(q)} />
+                    onClick={() => handleDeleteQuestion(q)} />
                 </div>
               </div>
             )}

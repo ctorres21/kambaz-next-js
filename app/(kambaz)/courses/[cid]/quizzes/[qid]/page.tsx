@@ -4,14 +4,15 @@ import { useParams, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../../store";
 import * as quizClient from "../client";
+import { Quiz, Attempt } from "../client";
 import { Button, Table } from "react-bootstrap";
 
 export default function QuizDetails() {
   const { cid, qid } = useParams();
   const router = useRouter();
   const { currentUser } = useSelector((state: RootState) => state.accountReducer);
-  const [quiz, setQuiz] = useState<any>(null);
-  const [latestAttempt, setLatestAttempt] = useState<any>(null);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [latestAttempt, setLatestAttempt] = useState<Attempt | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
 
   const isFaculty = currentUser?.role === "FACULTY";
@@ -26,10 +27,13 @@ export default function QuizDetails() {
           setAttemptCount(attempts.length);
           const latest = await quizClient.getLatestAttempt(qid as string);
           if (latest) setLatestAttempt(latest);
-        } catch { /* no attempts */ }
+        } catch {
+          /* no attempts */
+        }
       }
     };
     fetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qid]);
 
   if (!quiz) return <div className="p-3">Loading...</div>;
@@ -37,7 +41,7 @@ export default function QuizDetails() {
   const maxAttempts = quiz.multipleAttempts ? (quiz.howManyAttempts || 1) : 1;
   const canTakeQuiz = isFaculty || attemptCount < maxAttempts;
 
-  const formatDate = (d: string) => d ? new Date(d).toLocaleString() : "—";
+  const formatDate = (d: string): string => d ? new Date(d).toLocaleString() : "—";
 
   return (
     <div id="wd-quiz-details" className="p-3">
