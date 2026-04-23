@@ -4,6 +4,7 @@ import modulesReducer from "./courses/[cid]/modules/reducer";
 import accountReducer from "./account/reducer";
 import enrollmentsReducer from "./enrollments/reducer";
 import assignmentsReducer from "./courses/[cid]/assignments/reducer";
+import quizzesReducer from "./courses/[cid]/quizzes/reducer";
 
 const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ const store = configureStore({
     accountReducer,
     enrollmentsReducer,
     assignmentsReducer,
+    quizzesReducer,
   },
 });
 export type RootState = ReturnType<typeof store.getState>;
